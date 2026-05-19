@@ -1,0 +1,4 @@
+﻿dataset/
+*.zip
+models/best.pt
+yolo11n.pt
