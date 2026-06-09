@@ -1,0 +1,115 @@
+{% extends "dashboard/base.html" %}
+{% block title %}Settings{% endblock %}
+{% block page_title %}AI Settings{% endblock %}
+
+{% block extra_head %}
+<style>
+  .settings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; max-width: 900px; }
+  .panel-card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 20px; }
+  .panel-title { font-size: 12px; font-weight: 600; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.08em; font-family: var(--mono); margin-bottom: 16px; padding-bottom: 10px; border-bottom: 1px solid var(--border); }
+  .form-group { margin-bottom: 16px; }
+  .form-label { font-size: 12px; color: var(--text-dim); font-family: var(--mono); margin-bottom: 6px; display: block; }
+  .form-input { width: 100%; background: var(--surface-2); border: 1px solid var(--border); border-radius: 4px; color: var(--text); font-size: 13px; padding: 8px 12px; font-family: var(--mono); outline: none; transition: border-color 0.15s; }
+  .form-input:focus { border-color: var(--primary); }
+  .form-select { width: 100%; background: var(--surface-2); border: 1px solid var(--border); border-radius: 4px; color: var(--text); font-size: 13px; padding: 8px 12px; font-family: var(--mono); outline: none; cursor: pointer; }
+  .toggle-row { display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid rgba(42,52,80,0.5); }
+  .toggle-row:last-child { border: none; }
+  .toggle-label { font-size: 13px; color: var(--text); }
+  .toggle-sub { font-size: 11px; color: var(--text-dim); font-family: var(--mono); margin-top: 2px; }
+  .toggle { position: relative; width: 40px; height: 22px; }
+  .toggle input { opacity: 0; width: 0; height: 0; }
+  .toggle-slider { position: absolute; inset: 0; background: var(--border); border-radius: 22px; cursor: pointer; transition: 0.2s; }
+  .toggle-slider:before { content: ''; position: absolute; width: 16px; height: 16px; left: 3px; top: 3px; background: #fff; border-radius: 50%; transition: 0.2s; }
+  .toggle input:checked + .toggle-slider { background: var(--primary); }
+  .toggle input:checked + .toggle-slider:before { transform: translateX(18px); }
+  .save-btn { width: 100%; padding: 10px; background: var(--primary); border: none; border-radius: 4px; color: #fff; font-size: 13px; font-weight: 600; font-family: var(--mono); cursor: pointer; transition: opacity 0.15s; margin-top: 8px; }
+  .save-btn:hover { opacity: 0.85; }
+  .range-input { width: 100%; accent-color: var(--primary); }
+  .range-val { font-family: var(--mono); font-size: 13px; color: var(--primary-dim); }
+  .success-msg { display: none; background: rgba(74,222,128,0.1); border: 1px solid rgba(74,222,128,0.3); border-radius: 4px; padding: 8px 12px; font-size: 12px; font-family: var(--mono); color: var(--success); margin-top: 8px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<form method="POST" action="{% url 'settings' %}">
+  {% csrf_token %}
+  <div class="settings-grid">
+
+    <!-- Camera Settings -->
+    <div class="panel-card">
+      <div class="panel-title">Camera Source</div>
+
+      <div class="form-group">
+        <label class="form-label">Camera Source</label>
+        <select class="form-select" name="camera_source" onchange="toggleIpField(this.value)">
+          <option value="webcam" {% if settings.camera_source == 'webcam' %}selected{% endif %}>Laptop Webcam (Default)</option>
+          <option value="iphone" {% if settings.camera_source == 'iphone' %}selected{% endif %}>iPhone Camera (IP Stream)</option>
+        </select>
+      </div>
+
+      <div class="form-group" id="ip-field" style="{% if settings.camera_source != 'iphone' %}display:none{% endif %}">
+        <label class="form-label">iPhone Stream URL</label>
+        <input class="form-input" type="text" name="iphone_url" value="{{ settings.iphone_url }}" placeholder="http://192.168.0.102:8081/video"/>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Stream Resolution</label>
+        <select class="form-select" name="resolution">
+          <option value="320x240" {% if settings.resolution == '320x240' %}selected{% endif %}>320×240 (Faster, CPU friendly)</option>
+          <option value="640x480" {% if settings.resolution == '640x480' %}selected{% endif %}>640×480 (Balanced)</option>
+          <option value="1280x720" {% if settings.resolution == '1280x720' %}selected{% endif %}>1280×720 (High quality)</option>
+        </select>
+      </div>
+
+      <button type="submit" class="save-btn">SAVE CAMERA SETTINGS</button>
+    </div>
+
+    <!-- Detection Settings -->
+    <div class="panel-card">
+      <div class="panel-title">Detection Settings</div>
+
+      <div class="form-group">
+        <label class="form-label">Confidence Threshold: <span class="range-val" id="conf-val">{{ settings.confidence }}%</span></label>
+        <input class="range-input" type="range" name="confidence" min="30" max="95" value="{{ settings.confidence }}" oninput="document.getElementById('conf-val').textContent=this.value+'%'"/>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Frame Skip Rate: <span class="range-val" id="skip-val">Every {{ settings.frame_skip }} frames</span></label>
+        <input class="range-input" type="range" name="frame_skip" min="1" max="10" value="{{ settings.frame_skip }}" oninput="document.getElementById('skip-val').textContent='Every '+this.value+' frames'"/>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Active Detection Classes</label>
+        <div class="toggle-row">
+          <div><div class="toggle-label">Gun Detection</div><div class="toggle-sub">Pistols, rifles, handguns</div></div>
+          <label class="toggle"><input type="checkbox" name="detect_gun" {% if settings.detect_gun %}checked{% endif %}/><span class="toggle-slider"></span></label>
+        </div>
+        <div class="toggle-row">
+          <div><div class="toggle-label">Knife Detection</div><div class="toggle-sub">All blade types</div></div>
+          <label class="toggle"><input type="checkbox" name="detect_knife" {% if settings.detect_knife %}checked{% endif %}/><span class="toggle-slider"></span></label>
+        </div>
+        <div class="toggle-row">
+          <div><div class="toggle-label">Sword Detection</div><div class="toggle-sub">Swords and large blades</div></div>
+          <label class="toggle"><input type="checkbox" name="detect_sword" {% if settings.detect_sword %}checked{% endif %}/><span class="toggle-slider"></span></label>
+        </div>
+        <div class="toggle-row">
+          <div><div class="toggle-label">Armed Person Logic</div><div class="toggle-sub">Person + weapon proximity check</div></div>
+          <label class="toggle"><input type="checkbox" name="armed_person" {% if settings.armed_person %}checked{% endif %}/><span class="toggle-slider"></span></label>
+        </div>
+      </div>
+
+      <button type="submit" class="save-btn">SAVE DETECTION SETTINGS</button>
+      {% if saved %}<div class="success-msg" style="display:block">✓ Settings saved successfully</div>{% endif %}
+    </div>
+
+  </div>
+</form>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function toggleIpField(val) {
+  document.getElementById('ip-field').style.display = val === 'iphone' ? 'block' : 'none';
+}
+</script>
+{% endblock %}

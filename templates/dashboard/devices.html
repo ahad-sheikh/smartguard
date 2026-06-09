@@ -1,0 +1,80 @@
+{% extends "dashboard/base.html" %}
+{% block title %}Devices{% endblock %}
+{% block page_title %}Device Management{% endblock %}
+
+{% block extra_head %}
+<style>
+  .devices-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; }
+  .device-card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 16px; transition: border-color 0.15s; }
+  .device-card:hover { border-color: var(--primary); }
+  .device-card.online { border-left: 3px solid var(--success); }
+  .device-card.offline { border-left: 3px solid var(--text-dim); opacity: 0.6; }
+  .device-header { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+  .device-icon { width: 36px; height: 36px; border-radius: 8px; background: var(--surface-2); display: flex; align-items: center; justify-content: center; }
+  .device-icon .material-symbols-outlined { font-size: 20px; color: var(--primary-dim); }
+  .device-name { font-size: 13px; font-weight: 600; color: var(--text); }
+  .device-type { font-size: 10px; color: var(--text-dim); font-family: var(--mono); }
+  .device-status { margin-left: auto; display: flex; align-items: center; gap: 4px; font-size: 10px; font-family: var(--mono); }
+  .device-status.online { color: var(--success); }
+  .device-status.online::before { content:''; width:6px; height:6px; background:var(--success); border-radius:50%; animation: pulse 2s infinite; }
+  .device-status.offline { color: var(--text-dim); }
+  .device-stat { display: flex; justify-content: space-between; font-size: 11px; padding: 4px 0; border-bottom: 1px solid rgba(42,52,80,0.4); }
+  .device-stat:last-of-type { border: none; }
+  .device-stat-label { color: var(--text-dim); font-family: var(--mono); }
+  .device-stat-val { color: var(--text); font-family: var(--mono); }
+  .add-device-card { border-style: dashed; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; cursor: pointer; min-height: 160px; transition: all 0.2s; color: var(--text-dim); }
+  .add-device-card:hover { border-color: var(--primary); color: var(--primary-dim); background: rgba(77,142,255,0.05); }
+  .add-device-card .material-symbols-outlined { font-size: 28px; }
+  .add-device-card span:last-child { font-size: 12px; font-family: var(--mono); }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+</style>
+{% endblock %}
+
+{% block content %}
+<div style="margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;">
+  <div style="font-size:12px;color:var(--text-dim);font-family:var(--mono);">{{ devices|length }} device(s) configured</div>
+  <a href="{% url 'settings' %}" style="font-size:11px;padding:6px 14px;background:rgba(77,142,255,0.15);border:1px solid var(--primary);border-radius:4px;color:var(--primary-dim);font-family:var(--mono);text-decoration:none;">+ ADD DEVICE</a>
+</div>
+
+<div class="devices-grid">
+
+  <!-- Laptop webcam always shown -->
+  <div class="device-card online">
+    <div class="device-header">
+      <div class="device-icon"><span class="material-symbols-outlined">laptop</span></div>
+      <div>
+        <div class="device-name">Laptop Webcam</div>
+        <div class="device-type">BUILT-IN CAMERA</div>
+      </div>
+      <div class="device-status online">ONLINE</div>
+    </div>
+    <div class="device-stat"><span class="device-stat-label">Source</span><span class="device-stat-val">cv2.VideoCapture(0)</span></div>
+    <div class="device-stat"><span class="device-stat-label">Resolution</span><span class="device-stat-val">640×480</span></div>
+    <div class="device-stat"><span class="device-stat-label">AI Model</span><span class="device-stat-val">YOLOv11m</span></div>
+    <div class="device-stat"><span class="device-stat-label">Status</span><span class="device-stat-val" style="color:var(--success)">Detecting</span></div>
+  </div>
+
+  {% for device in devices %}
+  <div class="device-card {{ device.status }}">
+    <div class="device-header">
+      <div class="device-icon"><span class="material-symbols-outlined">smartphone</span></div>
+      <div>
+        <div class="device-name">{{ device.name }}</div>
+        <div class="device-type">IP CAMERA STREAM</div>
+      </div>
+      <div class="device-status {{ device.status }}">{{ device.status|upper }}</div>
+    </div>
+    <div class="device-stat"><span class="device-stat-label">URL</span><span class="device-stat-val" style="font-size:9px;">{{ device.url }}</span></div>
+    <div class="device-stat"><span class="device-stat-label">Protocol</span><span class="device-stat-val">MJPEG/HTTP</span></div>
+    <div class="device-stat"><span class="device-stat-label">AI Model</span><span class="device-stat-val">YOLOv11m</span></div>
+  </div>
+  {% endfor %}
+
+  <!-- Add device card -->
+  <div class="device-card add-device-card" onclick="window.location.href='{% url 'settings' %}'">
+    <span class="material-symbols-outlined">add_a_photo</span>
+    <span>Add New Camera</span>
+  </div>
+
+</div>
+{% endblock %}

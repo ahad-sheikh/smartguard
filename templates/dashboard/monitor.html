@@ -1,0 +1,250 @@
+{% extends "dashboard/base.html" %}
+{% block title %}Live Monitor{% endblock %}
+{% block page_title %}Live Monitor{% endblock %}
+
+{% block extra_head %}
+<style>
+  .monitor-grid { display: grid; grid-template-columns: 1fr 320px; gap: 16px; height: calc(100vh - 56px - 40px); }
+
+  /* Camera feeds */
+  .feeds-panel { display: flex; flex-direction: column; gap: 12px; }
+  .feeds-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; flex: 1; }
+
+  .feed-card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; position: relative; display: flex; flex-direction: column; }
+  .feed-card.threat { border-color: var(--danger); box-shadow: 0 0 12px rgba(255,68,68,0.25); animation: threatPulse 1s infinite; }
+  @keyframes threatPulse { 0%,100%{box-shadow:0 0 12px rgba(255,68,68,0.25)} 50%{box-shadow:0 0 24px rgba(255,68,68,0.5)} }
+  .feed-card.add-feed { border-style: dashed; cursor: pointer; align-items: center; justify-content: center; gap: 8px; color: var(--text-dim); transition: all 0.2s; min-height: 160px; }
+  .feed-card.add-feed:hover { border-color: var(--primary); color: var(--primary-dim); background: rgba(77,142,255,0.05); }
+  .feed-card.add-feed .material-symbols-outlined { font-size: 28px; }
+  .feed-card.add-feed span:last-child { font-size: 12px; }
+
+  .feed-header { display: flex; align-items: center; justify-content: space-between; padding: 8px 10px; background: rgba(0,0,0,0.3); position: absolute; top: 0; left: 0; right: 0; z-index: 10; }
+  .feed-badge { font-family: var(--mono); font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 3px; }
+  .feed-badge.live { background: rgba(255,68,68,0.8); color: #fff; display: flex; align-items: center; gap: 4px; }
+  .feed-badge.live::before { content:''; width:5px; height:5px; background:#fff; border-radius:50%; animation: pulse 1s infinite; }
+  .feed-badge.threat-badge { background: var(--danger); color: #fff; animation: badgePulse 0.5s infinite; }
+  @keyframes badgePulse { 0%,100%{opacity:1} 50%{opacity:0.6} }
+  .feed-name { font-size: 11px; color: rgba(255,255,255,0.8); font-family: var(--mono); }
+  .feed-info { position: absolute; bottom: 0; left: 0; right: 0; padding: 6px 10px; background: linear-gradient(transparent, rgba(0,0,0,0.7)); display: flex; justify-content: space-between; align-items: flex-end; z-index: 10; }
+  .feed-status { font-size: 10px; font-family: var(--mono); color: var(--success); }
+  .feed-status.threat { color: var(--danger-dim); }
+  .feed-res { font-size: 10px; font-family: var(--mono); color: var(--text-dim); }
+
+  .feed-video { width: 100%; flex: 1; object-fit: cover; display: block; background: #000; min-height: 160px; }
+  #main-feed { width: 100%; height: 100%; object-fit: cover; display: block; background: #000; }
+  .main-feed-card { flex: 1; }
+
+  /* Right panel */
+  .right-panel { display: flex; flex-direction: column; gap: 12px; overflow-y: auto; }
+
+  .panel-card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 14px; }
+  .panel-title { font-size: 12px; font-weight: 600; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.08em; font-family: var(--mono); margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; }
+  .panel-title .badge-new { background: var(--danger); color: #fff; font-size: 10px; padding: 1px 6px; border-radius: 10px; }
+
+  /* Status card */
+  .status-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .stat-item { background: var(--surface-2); border-radius: 6px; padding: 10px; }
+  .stat-val { font-size: 22px; font-weight: 700; font-family: var(--mono); color: var(--text); }
+  .stat-val.danger { color: var(--danger-dim); }
+  .stat-val.warning { color: var(--warning); }
+  .stat-label { font-size: 10px; color: var(--text-dim); margin-top: 2px; }
+
+  /* Alert items */
+  .alert-item { display: flex; gap: 10px; padding: 10px; background: var(--surface-2); border-radius: 6px; margin-bottom: 6px; border-left: 3px solid transparent; }
+  .alert-item.weapon { border-left-color: var(--danger); }
+  .alert-item.motion { border-left-color: var(--warning); }
+  .alert-icon { width: 30px; height: 30px; border-radius: 6px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .alert-icon.weapon { background: rgba(255,68,68,0.15); }
+  .alert-icon.weapon .material-symbols-outlined { color: var(--danger); font-size: 16px; }
+  .alert-icon.motion { background: rgba(255,185,95,0.15); }
+  .alert-icon.motion .material-symbols-outlined { color: var(--warning); font-size: 16px; }
+  .alert-body { flex: 1; min-width: 0; }
+  .alert-title { font-size: 12px; font-weight: 600; color: var(--text); }
+  .alert-meta { font-size: 10px; color: var(--text-dim); font-family: var(--mono); margin-top: 2px; }
+  .alert-conf { font-size: 10px; color: var(--danger-dim); font-family: var(--mono); }
+  .alert-actions { display: flex; gap: 4px; margin-top: 6px; }
+  .btn-xs { font-size: 10px; padding: 3px 8px; border-radius: 4px; border: 1px solid var(--border); background: transparent; color: var(--text-dim); cursor: pointer; font-family: var(--mono); transition: all 0.15s; }
+  .btn-xs.primary { border-color: var(--primary); color: var(--primary-dim); }
+  .btn-xs:hover { background: var(--surface-3); color: var(--text); }
+
+  /* System logs */
+  .log-item { font-size: 10px; font-family: var(--mono); color: var(--text-dim); padding: 3px 0; border-bottom: 1px solid var(--border); }
+  .log-item:last-child { border: none; }
+  .log-time { color: var(--primary-dim); }
+  .log-item.warn { color: var(--warning); }
+  .log-item.error { color: var(--danger-dim); }
+
+  /* Detection overlay info */
+  .detection-label { display: inline-flex; align-items: center; gap: 6px; background: rgba(255,68,68,0.15); border: 1px solid rgba(255,68,68,0.3); border-radius: 4px; padding: 4px 10px; font-family: var(--mono); font-size: 11px; color: var(--danger-dim); margin: 4px 4px 0 0; }
+  .detection-label .material-symbols-outlined { font-size: 14px; color: var(--danger); }
+  .detection-label.person { background: rgba(77,142,255,0.15); border-color: rgba(77,142,255,0.3); color: var(--primary-dim); }
+  .detection-label.person .material-symbols-outlined { color: var(--primary); }
+  .detection-label.armed { background: rgba(255,68,68,0.25); border-color: var(--danger); animation: badgePulse 0.8s infinite; }
+
+  .no-threat { display: flex; align-items: center; gap: 6px; font-size: 11px; font-family: var(--mono); color: var(--success); }
+  .no-threat .material-symbols-outlined { font-size: 14px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="monitor-grid">
+
+  <!-- Left: Camera feeds -->
+  <div class="feeds-panel">
+
+    <!-- Main feed -->
+    <div class="feed-card main-feed-card" id="main-feed-card">
+      <div class="feed-header">
+        <span class="feed-badge live">LIVE</span>
+        <span class="feed-name" id="main-feed-name">Webcam 01</span>
+        <span class="feed-badge" id="threat-badge" style="display:none">⚠ THREAT</span>
+      </div>
+      <img id="main-feed" src="/video_feed/" alt="Camera Feed"/>
+      <div class="feed-info">
+        <span class="feed-status" id="feed-status">Weapon Detection: Active</span>
+        <span class="feed-res">MJPEG | LIVE</span>
+      </div>
+    </div>
+
+    <!-- Detection labels -->
+    <div style="display:flex;flex-wrap:wrap;padding:4px 0;" id="detection-labels">
+      <div class="no-threat">
+        <span class="material-symbols-outlined">check_circle</span>
+        No threats detected — monitoring active
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Right panel -->
+  <div class="right-panel">
+
+    <!-- Stats -->
+    <div class="panel-card">
+      <div class="panel-title">Today's Stats</div>
+      <div class="status-grid">
+        <div class="stat-item">
+          <div class="stat-val danger" id="stat-threats">{{ total_threats }}</div>
+          <div class="stat-label">Threats Today</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-val" id="stat-guns">{{ gun_count }}</div>
+          <div class="stat-label">Guns Detected</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-val warning" id="stat-knives">{{ knife_count }}</div>
+          <div class="stat-label">Knives Detected</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-val" id="stat-armed">{{ armed_count }}</div>
+          <div class="stat-label">Armed Persons</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Recent alerts -->
+    <div class="panel-card">
+      <div class="panel-title">
+        Recent Alerts
+        <span class="badge-new" id="alert-badge">{{ recent_alerts|length }}</span>
+      </div>
+      <div id="alerts-list">
+        {% for alert in recent_alerts %}
+        <div class="alert-item weapon">
+          <div class="alert-icon weapon">
+            <span class="material-symbols-outlined">report</span>
+          </div>
+          <div class="alert-body">
+            <div class="alert-title">{{ alert.weapon_type|title }} Detected</div>
+            <div class="alert-meta">{{ alert.timestamp|date:"H:i:s" }} — Camera 01</div>
+            <div class="alert-conf">AI Confidence: {{ alert.confidence }}%</div>
+            <div class="alert-actions">
+              <a href="{% url 'incidents' %}" class="btn-xs primary">VIEW LOG</a>
+              <button class="btn-xs">DISMISS</button>
+            </div>
+          </div>
+        </div>
+        {% empty %}
+        <div style="font-size:12px;color:var(--text-dim);text-align:center;padding:16px 0;">
+          No alerts yet — system monitoring
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- System logs -->
+    <div class="panel-card">
+      <div class="panel-title">System Logs</div>
+      <div id="sys-logs">
+        {% for log in system_logs %}
+        <div class="log-item {% if log.level == 'warn' %}warn{% elif log.level == 'error' %}error{% endif %}">
+          <span class="log-time">[{{ log.timestamp|date:"H:i:s" }}]</span> {{ log.message }}
+        </div>
+        {% empty %}
+        <div class="log-item"><span class="log-time">[--:--:--]</span> System started — monitoring active</div>
+        {% endfor %}
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Poll for latest detections every 2 seconds
+function pollDetections() {
+  fetch('/api/latest_detection/')
+    .then(r => r.json())
+    .then(data => {
+      const labels = document.getElementById('detection-labels');
+      const feedCard = document.getElementById('main-feed-card');
+      const feedStatus = document.getElementById('feed-status');
+      const threatBadge = document.getElementById('threat-badge');
+
+      if (data.detections && data.detections.length > 0) {
+        feedCard.classList.add('threat');
+        threatBadge.style.display = 'flex';
+        feedStatus.className = 'feed-status threat';
+        feedStatus.textContent = 'THREAT DETECTED';
+
+        let html = '';
+        data.detections.forEach(d => {
+          if (d.type === 'armed') {
+            html += `<div class="detection-label armed"><span class="material-symbols-outlined">warning</span>ARMED PERSON: ${d.weapon} (${d.conf}%)</div>`;
+          } else if (d.type === 'weapon') {
+            html += `<div class="detection-label"><span class="material-symbols-outlined">report</span>WEAPON: ${d.weapon} (${d.conf}%)</div>`;
+          } else {
+            html += `<div class="detection-label person"><span class="material-symbols-outlined">person</span>PERSON (${d.conf}%)</div>`;
+          }
+        });
+        labels.innerHTML = html;
+
+        // Show toast for new threats
+        if (data.new_threat) {
+          showToast(data.detections[0].weapon + ' detected on camera');
+        }
+
+      } else {
+        feedCard.classList.remove('threat');
+        threatBadge.style.display = 'none';
+        feedStatus.className = 'feed-status';
+        feedStatus.textContent = 'Weapon Detection: Active';
+        labels.innerHTML = '<div class="no-threat"><span class="material-symbols-outlined">check_circle</span>No threats detected — monitoring active</div>';
+      }
+
+      // Update stats
+      if (data.stats) {
+        document.getElementById('stat-threats').textContent = data.stats.total;
+        document.getElementById('stat-guns').textContent = data.stats.guns;
+        document.getElementById('stat-knives').textContent = data.stats.knives;
+        document.getElementById('stat-armed').textContent = data.stats.armed;
+      }
+    })
+    .catch(() => {});
+}
+
+setInterval(pollDetections, 2000);
+pollDetections();
+</script>
+{% endblock %}

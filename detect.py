@@ -9,7 +9,7 @@ person_model  = YOLO("yolo11n.pt")
 weapon_classes = ['gun', 'knife', 'sword']
 
 
-SOURCE = 0
+SOURCE = "http://192.168.0.102:8081/video"
 # ── Helper Functions ──────────────────────────────────────────
 def get_center(box):
     x1, y1, x2, y2 = box.xyxy[0]

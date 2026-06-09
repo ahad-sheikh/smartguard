@@ -1,0 +1,130 @@
+{% extends "dashboard/base.html" %}
+{% block title %}Analytics{% endblock %}
+{% block page_title %}Analytics{% endblock %}
+
+{% block extra_head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+  .analytics-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .analytics-grid.three { grid-template-columns: 1fr 1fr 1fr; }
+  .panel-card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 16px; }
+  .panel-title { font-size: 12px; font-weight: 600; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.08em; font-family: var(--mono); margin-bottom: 14px; }
+  .stat-big { font-size: 36px; font-weight: 800; font-family: var(--mono); }
+  .stat-big.danger { color: var(--danger-dim); }
+  .stat-big.warning { color: var(--warning); }
+  .stat-big.success { color: var(--success); }
+  .stat-sub { font-size: 11px; color: var(--text-dim); margin-top: 2px; }
+  .chart-container { position: relative; height: 200px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div style="display:flex;flex-direction:column;gap:16px;">
+
+  <!-- Top stats -->
+  <div class="analytics-grid three">
+    <div class="panel-card">
+      <div class="panel-title">Total Detections</div>
+      <div class="stat-big danger">{{ total_count }}</div>
+      <div class="stat-sub">All time incidents logged</div>
+    </div>
+    <div class="panel-card">
+      <div class="panel-title">Armed Person Events</div>
+      <div class="stat-big warning">{{ armed_count }}</div>
+      <div class="stat-sub">Person + weapon confirmed</div>
+    </div>
+    <div class="panel-card">
+      <div class="panel-title">Most Common Threat</div>
+      <div class="stat-big success" style="font-size:24px;margin-top:6px;">{{ most_common|upper }}</div>
+      <div class="stat-sub">Highest frequency detection</div>
+    </div>
+  </div>
+
+  <!-- Charts -->
+  <div class="analytics-grid">
+    <div class="panel-card">
+      <div class="panel-title">Detections by Weapon Type</div>
+      <div class="chart-container">
+        <canvas id="weaponChart"></canvas>
+      </div>
+    </div>
+    <div class="panel-card">
+      <div class="panel-title">Detections Over Time (Last 7 Days)</div>
+      <div class="chart-container">
+        <canvas id="timeChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Breakdown -->
+  <div class="analytics-grid three">
+    <div class="panel-card">
+      <div class="panel-title">Gun Detections</div>
+      <div class="stat-big danger">{{ gun_count }}</div>
+      <div class="stat-sub">Firearms detected</div>
+    </div>
+    <div class="panel-card">
+      <div class="panel-title">Knife Detections</div>
+      <div class="stat-big warning">{{ knife_count }}</div>
+      <div class="stat-sub">Knives detected</div>
+    </div>
+    <div class="panel-card">
+      <div class="panel-title">Sword Detections</div>
+      <div class="stat-big">{{ sword_count }}</div>
+      <div class="stat-sub">Swords detected</div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const chartDefaults = {
+  color: '#8892a4',
+  borderColor: '#2a3450',
+  plugins: { legend: { labels: { color: '#8892a4', font: { family: 'JetBrains Mono', size: 11 } } } },
+  scales: {
+    x: { ticks: { color: '#8892a4', font: { family: 'JetBrains Mono', size: 10 } }, grid: { color: '#1a2438' } },
+    y: { ticks: { color: '#8892a4', font: { family: 'JetBrains Mono', size: 10 } }, grid: { color: '#1a2438' } }
+  }
+};
+
+// Weapon type chart
+new Chart(document.getElementById('weaponChart'), {
+  type: 'doughnut',
+  data: {
+    labels: ['Gun', 'Knife', 'Sword'],
+    datasets: [{
+      data: [{{ gun_count }}, {{ knife_count }}, {{ sword_count }}],
+      backgroundColor: ['rgba(255,68,68,0.7)', 'rgba(255,185,95,0.7)', 'rgba(173,198,255,0.7)'],
+      borderColor: ['#ff4444', '#ffb95f', '#adc6ff'],
+      borderWidth: 1
+    }]
+  },
+  options: {
+    plugins: { legend: { labels: { color: '#8892a4', font: { family: 'JetBrains Mono', size: 11 } } } },
+    cutout: '65%'
+  }
+});
+
+// Time series chart
+new Chart(document.getElementById('timeChart'), {
+  type: 'line',
+  data: {
+    labels: {{ chart_labels|safe }},
+    datasets: [{
+      label: 'Detections',
+      data: {{ chart_data|safe }},
+      borderColor: '#4d8eff',
+      backgroundColor: 'rgba(77,142,255,0.1)',
+      fill: true,
+      tension: 0.4,
+      pointBackgroundColor: '#4d8eff',
+      pointRadius: 4
+    }]
+  },
+  options: { ...chartDefaults, plugins: { legend: { display: false } } }
+});
+</script>
+{% endblock %}
