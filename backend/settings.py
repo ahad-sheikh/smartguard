@@ -1,6 +1,6 @@
 """
 Django settings for SmartGuard project.
-Replace the contents of your smartguard_project/settings.py with this file.
+Replace the contents of your backend/settings.py with this file.
 """
 
 from pathlib import Path
@@ -33,7 +33,7 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-ROOT_URLCONF = 'smartguard_project.urls'
+ROOT_URLCONF = 'backend.urls'
 
 TEMPLATES = [
     {
@@ -51,7 +51,7 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = 'smartguard_project.wsgi.application'
+WSGI_APPLICATION = 'backend.wsgi.application'
 
 DATABASES = {
     'default': {

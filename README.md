@@ -15,7 +15,7 @@ SmartGuard is an intelligent security surveillance application engineered to ide
 ```text
 smartguard/
 │
-├── smartguard_project/     # Core Django configuration (settings, URLs, WSGI/ASGI)
+├── backend/              # Core Django configuration (settings, URLs, WSGI/ASGI)
 ├── detection/              # Core app containing application logic
 │   ├── migrations/         # Database state migration logs
 │   ├── models.py           # Database definitions (System settings, incident logs)

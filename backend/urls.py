@@ -1,5 +1,5 @@
 """
-Replace your smartguard_project/urls.py with this file.
+Replace your backend/urls.py with this file.
 """
 from django.contrib import admin
 from django.urls import path, include
