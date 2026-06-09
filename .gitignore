@@ -2,3 +2,5 @@
 *.zip
 models/best.pt
 yolo11n.pt
+__pycache__/
+db.sqlite3

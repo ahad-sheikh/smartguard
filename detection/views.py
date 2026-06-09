@@ -36,9 +36,32 @@ threading.Thread(target=load_models, daemon=True).start()
 # ── Video generator ───────────────────────────────────────────
 def get_camera_source():
     s = SystemSettings.get()
+    source = s.iphone_url.strip()
+    if s.camera_source == 'webcam':
+        return 0
+    if s.camera_source == 'droidcam':
+        return int(source) if source.isdigit() else source
     if s.camera_source == 'iphone':
-        return s.iphone_url
-    return 0
+        return source
+    return source
+
+
+def get_camera_label():
+    s = SystemSettings.get()
+    if s.camera_source == 'webcam':
+        return 'Webcam'
+    if s.camera_source == 'droidcam':
+        return 'DroidCam'
+    if s.camera_source == 'iphone':
+        return 'IP Camera'
+    return s.camera_source.title()
+
+
+def open_camera(source):
+    if isinstance(source, int):
+        return cv2.VideoCapture(source, cv2.CAP_DSHOW)
+    return cv2.VideoCapture(source)
+
 
 def get_center(box):
     x1, y1, x2, y2 = box.xyxy[0]
@@ -54,20 +77,36 @@ def box_width(box):
 def generate_frames():
     global latest_detections, latest_stats, last_threat_time
     weapon_classes = ['gun', 'knife', 'sword']
-    settings = SystemSettings.get()
     frame_count = 0
     person_cache = []
 
     source = get_camera_source()
-    cap = cv2.VideoCapture(source)
+    cap = open_camera(source)
     cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
 
     while True:
+        current_source = get_camera_source()
+        if current_source != source:
+            cap.release()
+            source = current_source
+            cap = open_camera(source)
+            cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
+
+        if not cap.isOpened():
+            cap.release()
+            time.sleep(2)
+            source = get_camera_source()
+            cap = open_camera(source)
+            cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
+            continue
+
         ret, frame = cap.read()
         if not ret:
             cap.release()
             time.sleep(2)
-            cap = cv2.VideoCapture(get_camera_source())
+            source = get_camera_source()
+            cap = open_camera(source)
+            cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
             continue
 
         frame_count += 1
@@ -196,6 +235,7 @@ def dashboard(request):
     knife_count   = Incident.objects.filter(weapon_type='knife').count()
     armed_count   = Incident.objects.filter(detection_type='armed').count()
     alert_count   = Incident.objects.filter(timestamp__date=date.today()).count()
+    feed_source   = get_camera_label()
 
     return render(request, 'dashboard/monitor.html', {
         'recent_alerts': recent_alerts,
@@ -205,6 +245,7 @@ def dashboard(request):
         'knife_count':   knife_count,
         'armed_count':   armed_count,
         'alert_count':   alert_count,
+        'feed_source_name': feed_source,
     })
 
 
@@ -270,7 +311,7 @@ def settings_view(request):
     saved = False
     if request.method == 'POST':
         s.camera_source = request.POST.get('camera_source', 'webcam')
-        s.iphone_url    = request.POST.get('iphone_url', '')
+        s.iphone_url    = request.POST.get('iphone_url', '').strip()
         s.resolution    = request.POST.get('resolution', '320x240')
         s.confidence    = float(request.POST.get('confidence', 50))
         s.frame_skip    = int(request.POST.get('frame_skip', 3))
@@ -290,6 +331,8 @@ def devices(request):
     s = SystemSettings.get()
     device_list = []
     if s.camera_source == 'iphone' and s.iphone_url:
-        device_list.append({'name': 'iPhone Camera', 'url': s.iphone_url, 'status': 'online'})
+        device_list.append({'name': 'IP Camera Stream', 'url': s.iphone_url, 'status': 'online', 'type': 'IP CAMERA STREAM'})
+    elif s.camera_source == 'droidcam' and s.iphone_url:
+        device_list.append({'name': 'DroidCam', 'url': s.iphone_url, 'status': 'online', 'type': 'DROIDCAM'})
     today_count = Incident.objects.filter(timestamp__date=date.today()).count()
     return render(request, 'dashboard/devices.html', {'devices': device_list, 'alert_count': today_count})

@@ -60,11 +60,11 @@
       <div class="device-icon"><span class="material-symbols-outlined">smartphone</span></div>
       <div>
         <div class="device-name">{{ device.name }}</div>
-        <div class="device-type">IP CAMERA STREAM</div>
+        <div class="device-type">{{ device.type }}</div>
       </div>
       <div class="device-status {{ device.status }}">{{ device.status|upper }}</div>
     </div>
-    <div class="device-stat"><span class="device-stat-label">URL</span><span class="device-stat-val" style="font-size:9px;">{{ device.url }}</span></div>
+    <div class="device-stat"><span class="device-stat-label">Source</span><span class="device-stat-val" style="font-size:9px;">{{ device.url }}</span></div>
     <div class="device-stat"><span class="device-stat-label">Protocol</span><span class="device-stat-val">MJPEG/HTTP</span></div>
     <div class="device-stat"><span class="device-stat-label">AI Model</span><span class="device-stat-val">YOLOv11m</span></div>
   </div>

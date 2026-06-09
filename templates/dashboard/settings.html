@@ -43,13 +43,17 @@
         <label class="form-label">Camera Source</label>
         <select class="form-select" name="camera_source" onchange="toggleIpField(this.value)">
           <option value="webcam" {% if settings.camera_source == 'webcam' %}selected{% endif %}>Laptop Webcam (Default)</option>
+          <option value="droidcam" {% if settings.camera_source == 'droidcam' %}selected{% endif %}>DroidCam (Windows client)</option>
           <option value="iphone" {% if settings.camera_source == 'iphone' %}selected{% endif %}>iPhone Camera (IP Stream)</option>
         </select>
       </div>
 
-      <div class="form-group" id="ip-field" style="{% if settings.camera_source != 'iphone' %}display:none{% endif %}">
-        <label class="form-label">iPhone Stream URL</label>
-        <input class="form-input" type="text" name="iphone_url" value="{{ settings.iphone_url }}" placeholder="http://192.168.0.102:8081/video"/>
+      <div class="form-group" id="ip-field" style="{% if settings.camera_source != 'iphone' and settings.camera_source != 'droidcam' %}display:none{% endif %}">
+        <label class="form-label">Camera Index or Stream URL</label>
+        <input class="form-input" type="text" name="iphone_url" value="{{ settings.iphone_url }}" placeholder="0 or 1 for DroidCam, or http://192.168.0.102:8081/video"/>
+        <div class="form-label" style="margin-top:8px;font-size:11px;color:var(--text-dim);line-height:1.4;">
+          For DroidCam Windows client, enter the local camera index from the client (for example <code>0</code>, <code>1</code> or <code>2</code>). Only use an HTTP stream URL if you are running a separate MJPEG camera app.
+        </div>
       </div>
 
       <div class="form-group">
@@ -109,7 +113,7 @@
 {% block extra_js %}
 <script>
 function toggleIpField(val) {
-  document.getElementById('ip-field').style.display = val === 'iphone' ? 'block' : 'none';
+  document.getElementById('ip-field').style.display = (val === 'iphone' || val === 'droidcam') ? 'block' : 'none';
 }
 </script>
 {% endblock %}

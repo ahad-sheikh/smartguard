@@ -96,7 +96,7 @@
     <div class="feed-card main-feed-card" id="main-feed-card">
       <div class="feed-header">
         <span class="feed-badge live">LIVE</span>
-        <span class="feed-name" id="main-feed-name">Webcam 01</span>
+        <span class="feed-name" id="main-feed-name">{{ feed_source_name }}</span>
         <span class="feed-badge" id="threat-badge" style="display:none">⚠ THREAT</span>
       </div>
       <img id="main-feed" src="/video_feed/" alt="Camera Feed"/>
@@ -156,7 +156,7 @@
           </div>
           <div class="alert-body">
             <div class="alert-title">{{ alert.weapon_type|title }} Detected</div>
-            <div class="alert-meta">{{ alert.timestamp|date:"H:i:s" }} — Camera 01</div>
+            <div class="alert-meta">{{ alert.timestamp|date:"H:i:s" }} — {{ feed_source_name }}</div>
             <div class="alert-conf">AI Confidence: {{ alert.confidence }}%</div>
             <div class="alert-actions">
               <a href="{% url 'incidents' %}" class="btn-xs primary">VIEW LOG</a>

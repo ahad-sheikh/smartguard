@@ -48,6 +48,13 @@ Download your target detection weights (e.g., yolo11n.pt).
 
 Place the file directly in the project root directory (smartguard/).
 
+### 📱 Using DroidCam as a Phone Camera
+If you want to use your phone camera via DroidCam instead of an IP camera app:
+1. Install the DroidCam app on your phone and the DroidCam client on your Windows PC.
+2. Connect your phone via USB or Wi-Fi and start the DroidCam client.
+3. Note the camera index shown by DroidCam (usually `0`, `1`, or `2`).
+4. Open the SmartGuard dashboard, go to Settings, select `DroidCam (Windows client)` and enter that device index or stream URL.
+
 4. Apply Database Migrations
 Initialize the structural setup for your local database layer. This command will auto-generate your clean local db.sqlite3 instance:
 
@@ -63,3 +70,13 @@ Once initialized, open your web browser and navigate to:
 
 🛡️ License
 This project is developed for internal educational and research purposes as part of a final year project. All rights reserved.
+
+
+# 1. Stage the markdown file
+git add README.md
+
+# 2. Commit it with a clear message
+git commit -m "Add comprehensive project README documentation"
+
+# 3. Push it live to GitHub
+git push origin main
